@@ -3,6 +3,12 @@ project(embers VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(external/glfw)
+
 add_library(
         ${PROJECT_NAME}
         SHARED
@@ -19,5 +25,6 @@ target_include_directories(
         ${CMAKE_INSTALL_INCLUDEDIR}/src
 )
 
+target_link_libraries(embers glfw)
 
 
