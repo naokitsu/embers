@@ -9,6 +9,8 @@ void processInput(GLFWwindow *window) {
 }
 
 int run() {
+  using namespace embers;
+
   const int height = 900;
   const int width = 2300;
 

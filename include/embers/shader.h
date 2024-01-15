@@ -7,35 +7,50 @@
 
 #include <set>
 #include <stdexcept>
+#include <bits/unique_ptr.h>
 #include <glad/glad.h>
 
-namespace shader {
+namespace embers::shader {
 
-class Shader {
-  public:
-  enum Type {
-    kVertex = GL_VERTEX_SHADER,
-    kFragment = GL_FRAGMENT_SHADER,
-  };
-  private:
-  GLuint shader_;
-  public:
-  explicit Shader(const char *source, Type type);
-  ~Shader();
-
-  explicit operator GLuint() {
-    return shader_;
-  }
-
-};
+class Shader;
 
 class ShaderException : public std::runtime_error {
   public:
-  ShaderException(char const* message) noexcept : std::runtime_error(message) {}; // NOLINT(*-explicit-constructor)
-  char const* what() const noexcept override {
-    return std::runtime_error::what();
-  };
+  explicit ShaderException(char const* message) noexcept;
+  [[nodiscard]] char const* what() const noexcept override;
 };
+
+enum Type {
+  kVertex = GL_VERTEX_SHADER,
+  kFragment = GL_FRAGMENT_SHADER,
+};
+
+class Source {
+  public:
+  Source(const char *source, Type type, size_t length = 0);
+  Source(std::istream &input_stream, Type type, size_t length = 0);
+  Shader Compile();
+  private:
+  std::unique_ptr<char[]> source_;
+  Type type_;
+};
+
+class Shader {
+  public:
+
+
+  explicit Shader(const char *source, Type type);
+  ~Shader();
+
+  explicit operator GLuint() const {
+    return shader_;
+  }
+
+  private:
+  GLuint shader_;
+};
+
+
 
 class Program {
   public:
@@ -68,9 +83,6 @@ class Program {
   }
 };
 
-
-
 }
-
 
 #endif //SHADER_H

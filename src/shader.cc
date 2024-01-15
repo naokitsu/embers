@@ -4,11 +4,37 @@
 
 #include "embers/shader.h"
 
+#include <algorithm>
+#include <istream>
 #include <memory>
 
-namespace shader {
+namespace embers::shader {
 
-Shader::Shader(const char *source, const Shader::Type type) {
+// ShaderException
+ShaderException::ShaderException(char const *message) noexcept : std::runtime_error(message) {};
+
+char const *ShaderException::what() const noexcept { return std::runtime_error::what(); }
+
+// Source
+Source::Source(const char *source, Type type, size_t length)
+  : source_(std::make_unique<char[]>(length+1)), type_(type) {
+  // I don't like I have to copy the array, but I don't see a way to transfer
+  // ownership to the class since `source` *can be* static and at the same time
+  // can live shorter than Source
+  // I would prefer the Rust's implicit move :shrug:
+  std::copy_n(source, length, source_.get());
+  source_[length] = '\0';
+}
+
+Source::Source(std::istream &input_stream, Type type, size_t length)
+  : source_(std::make_unique<char[]>(length+1)), type_(type) {
+  input_stream.read(source_.get(), length);
+  source_[length] = '\0';
+}
+
+
+
+Shader::Shader(const char *source, const ShaderType type) {
   GLint success = 0;
   shader_ = glCreateShader(type);
   glShaderSource(shader_, 1, &source, nullptr);
@@ -97,8 +123,5 @@ Program &Program::setUniform(const char *name, GLfloat value) {
   return *this;
 }
 
-
-
-
-
 }
+
