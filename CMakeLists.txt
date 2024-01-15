@@ -13,8 +13,9 @@ add_subdirectory(external/glad)
 add_library(
         ${PROJECT_NAME}
         SHARED
-        src/test.h
-        src/hello-world.cc
+        src/shader.cc
+        src/run.cc
+        include/embers/run.h
 )
 
 target_include_directories(
@@ -26,6 +27,6 @@ target_include_directories(
         ${CMAKE_INSTALL_INCLUDEDIR}/src
 )
 
-target_link_libraries(embers glfw)
-target_link_libraries(embers glad)
+target_link_libraries(embers PRIVATE glfw)
+target_link_libraries(embers PRIVATE glad)
 
