@@ -8,6 +8,7 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(external/glfw)
+add_subdirectory(external/glad)
 
 add_library(
         ${PROJECT_NAME}
@@ -26,5 +27,5 @@ target_include_directories(
 )
 
 target_link_libraries(embers glfw)
-
+target_link_libraries(embers glad)
 
