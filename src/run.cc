@@ -77,9 +77,9 @@ int run() {
       auto fragment_shader = shader::Source(fragment_shader_sources[i], shader::Type::kFragment).Compile();
 
       programs[i] = shader::Program::Builder()
-                              .AttachShader(vertex_shader)
-                              .AttachShader(fragment_shader)
-                              .Link();
+      .AttachShader(vertex_shader)
+      .AttachShader(fragment_shader)
+      .Link();
     }
   }
 

@@ -112,6 +112,11 @@ Program::Builder::~Builder() {
 // Program
 Program::Program(GLint program) : program_(program) {}
 
+Program::Program(Program &&program) noexcept : program_(program.program_) {
+  program.program_ = 0;
+}
+
+
 Program::~Program() {
   glDeleteProgram(program_);
 }
@@ -135,4 +140,11 @@ Program &Program::setUniform(const char *name, GLfloat value) {
   glUniform1f(glGetUniformLocation(program_, name), value);
   return *this;
 }
+
+Program &Program::operator=(Program &&program) noexcept {
+  program_ = program.program_;
+  program.program_ = 0;
+  return *this;
+}
+
 }

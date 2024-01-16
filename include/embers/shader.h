@@ -66,6 +66,8 @@ class Program {
     GLint program_;
   public:
     explicit Program(GLint program = 0);
+    Program(const Program &) = delete;
+    Program(Program &&program) noexcept;
     ~Program();
 
     Program &use();
@@ -74,9 +76,12 @@ class Program {
     Program &setUniform(const char *name, GLint value);
     Program &setUniform(const char *name, GLfloat value);
 
-    explicit operator GLuint() {
+    explicit operator GLuint() const {
       return program_;
     }
+
+  Program &operator=(const Program &) = delete;
+  Program &operator=(Program &&program) noexcept;
 };
 }
 
