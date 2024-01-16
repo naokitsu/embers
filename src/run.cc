@@ -3,6 +3,9 @@
 //
 #include "embers/run.h"
 
+#include <ranges>
+#include <bits/ranges_algo.h>
+
 void processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
@@ -13,7 +16,6 @@ int run() {
 
   const int height = 900;
   const int width = 2300;
-
 
   GLFWwindow *window;
   {
@@ -46,16 +48,16 @@ int run() {
     "vertexColor = vec4(aColor, 1.0);"
     "}\0";
 
-  const char *fragment_shader_source_a =
+  const std::vector fragment_shader_sources =
+  {
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "in vec4 vertexColor;\n"
     "uniform float ourColor;\n"
     "void main() {\n"
     "FragColor = vertexColor / ourColor; \n"
-    "}\0";
+    "}\0",
 
-  const char *fragment_shader_source_b =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "in vec4 vertexColor;\n"
@@ -63,37 +65,48 @@ int run() {
     "layout(pixel_center_integer) in vec4 gl_FragCoord;\n"
     "void main() {\n"
     "FragColor = vertexColor / (ourColor * 2.0); \n"
-    "}\0";
+    "}\0"
+  };
   constexpr int x = 2;
 
+  shader::Program programs[x];
+  {
+    auto shader_expected = shader::Source(vertex_shader_source, shader::Type::kVertex).Compile();
+    if (!shader_expected.has_value()) {
+      std::cout << shader_expected.error().Message() << std::endl;
+      return -1;
+    }
+    const shader::Shader vertex_shader = shader_expected.value();
+    for (int i = 0; i < x; ++i) {
+      auto f_shader_expected = std::move(shader::Source(fragment_shader_sources[i], shader::Type::kFragment).Compile());
+      if (!f_shader_expected.has_value()) {
+        std::cout << f_shader_expected.error().Message() << std::endl;
+        return -1;
+      }
+      auto program_expected = shader::Program::Builder()
+                              .AttachShader(vertex_shader)
+                              .AttachShader(f_shader_expected.value())
+                              .Link();
+      if (!program_expected.has_value()) {
+        std::cout << program_expected.error().Message() << std::endl;
+        return -1;
+      }
+      programs[i] = program_expected.value();
+    }
+  }
 
-  try {
-    const shader::Shader vertex_shader(vertex_shader_source, shader::Shader::kVertex);
-    const shader::Shader fragment_shader_a(fragment_shader_source_a, shader::Shader::kFragment);
-    const shader::Shader fragment_shader_b(fragment_shader_source_b, shader::Shader::kFragment);
-
-    shader::Program shader_programs[x] = {
-      shader::Program::Builder()
-      .AttachShader(vertex_shader)
-      .AttachShader(fragment_shader_a)
-      .Link(),
-      shader::Program::Builder()
-      .AttachShader(vertex_shader)
-      .AttachShader(fragment_shader_b)
-      .Link()
-    };
-
-constexpr float vertices[x][3*5] = {
-     {
-       -0.5f,  0.7f, 1.0f, 0.0f, 0.0f,
-       0.7f, 0.7f, 0.0f, 1.0f, 0.0f,
-       0.7f,  -0.7f, 0.0f, 0.0f, 1.0f
-     }, {
-       -0.7f, 0.7f, 1.0f, 1.0f, 0.0f,
-       0.5f, -0.7f,  1.0f, 0.0f, 1.0f,
-       -0.7f, -0.7f,  0.0f, 1.0f, 1.0f
-     }
-    };
+  constexpr float vertices[x][3 * 5] = {
+    {
+      -0.5f, 0.7f, 1.0f, 0.0f, 0.0f,
+      0.7f, 0.7f, 0.0f, 1.0f, 0.0f,
+      0.7f, -0.7f, 0.0f, 0.0f, 1.0f
+    },
+    {
+      -0.7f, 0.7f, 1.0f, 1.0f, 0.0f,
+      0.5f, -0.7f, 1.0f, 0.0f, 1.0f,
+      -0.7f, -0.7f, 0.0f, 1.0f, 1.0f
+    }
+  };
 
   constexpr unsigned int indices[] = {
     0, 1, 2,
@@ -108,23 +121,19 @@ constexpr float vertices[x][3*5] = {
 
   //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-
-
   unsigned int vertex_array_object[x];
   unsigned int vertex_buffer_object[x];
 
   glGenVertexArrays(x, vertex_array_object);
   glGenBuffers(x, vertex_buffer_object);
 
-
-
   for (int i = 0; i < x; ++i) {
     glBindVertexArray(vertex_array_object[i]);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object[i]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[i]), vertices[i], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (2 * sizeof(float)));
     glEnableVertexAttribArray(1);
   }
 
@@ -144,12 +153,12 @@ constexpr float vertices[x][3*5] = {
     processInput(window);
     glClear(GL_COLOR_BUFFER_BIT);
     for (int i = 0; i < x; ++i) {
-      shader_programs[i]
+      programs[i]
         .use()
         .setUniform(
-          "ourColor",
-          static_cast<GLfloat>((sin(glfwGetTime()) + 1) / 2)
-          );
+                    "ourColor",
+                    static_cast<GLfloat>((sin(glfwGetTime()) + 1) / 2)
+                   );
       glBindVertexArray(vertex_array_object[i]);
       glDrawArrays(GL_TRIANGLES, 0, 3);
     }
@@ -159,11 +168,4 @@ constexpr float vertices[x][3*5] = {
   }
 
   return 0;
-
-
-  } catch (std::runtime_error error) {
-    std::cout << error.what() << std::endl;
-    return 1;
-  }
-
 }

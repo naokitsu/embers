@@ -9,15 +9,29 @@
 #include <stdexcept>
 #include <bits/unique_ptr.h>
 #include <glad/glad.h>
+#include <expected>
 
 namespace embers::shader {
 
 class Shader;
 
-class ShaderException : public std::runtime_error {
+class Error {
   public:
-  explicit ShaderException(char const* message) noexcept;
-  [[nodiscard]] char const* what() const noexcept override;
+  enum Type {
+    Compilation,
+    Linking,
+    Null,
+  };
+  explicit Error() noexcept;
+  explicit Error(std::unique_ptr<char[]> &&message, Type type) noexcept;
+  Error(const Error &error);
+  Error(Error &&error);
+  [[nodiscard]] Type ErrorType() const noexcept;
+  [[nodiscard]] const char *Message() const noexcept;
+  ~Error() = default;
+  private:
+  std::unique_ptr<char[]> message_;
+  Type type_;
 };
 
 enum Type {
@@ -25,11 +39,13 @@ enum Type {
   kFragment = GL_FRAGMENT_SHADER,
 };
 
+
 class Source {
   public:
   Source(const char *source, Type type, size_t length = 0);
   Source(std::istream &input_stream, Type type, size_t length = 0);
-  Shader Compile();
+  Source(const Source &) = delete;
+  [[nodiscard]] std::expected<Shader, Error> Compile() const;
   private:
   std::unique_ptr<char[]> source_;
   Type type_;
@@ -37,11 +53,9 @@ class Source {
 
 class Shader {
   public:
-
-
-  explicit Shader(const char *source, Type type);
+  explicit Shader(GLuint shader = 0);
+  Shader(const Shader &) = delete;
   ~Shader();
-
   explicit operator GLuint() const {
     return shader_;
   }
@@ -49,8 +63,6 @@ class Shader {
   private:
   GLuint shader_;
 };
-
-
 
 class Program {
   public:
@@ -62,7 +74,7 @@ class Program {
     Builder();
     Builder &AttachShader(Shader shader);
     Builder &DetachShader(Shader shader);
-    Program Link();
+    std::expected<Program, Error> Link();
     ~Builder();
   };
 
