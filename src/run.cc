@@ -71,27 +71,15 @@ int run() {
 
   shader::Program programs[x];
   {
-    auto shader_expected = shader::Source(vertex_shader_source, shader::Type::kVertex).Compile();
-    if (!shader_expected.has_value()) {
-      std::cout << shader_expected.error().Message() << std::endl;
-      return -1;
-    }
-    const shader::Shader vertex_shader = shader_expected.value();
+    auto vertex_shader = shader::Source(vertex_shader_source, shader::Type::kVertex).Compile();
+
     for (int i = 0; i < x; ++i) {
-      auto f_shader_expected = std::move(shader::Source(fragment_shader_sources[i], shader::Type::kFragment).Compile());
-      if (!f_shader_expected.has_value()) {
-        std::cout << f_shader_expected.error().Message() << std::endl;
-        return -1;
-      }
-      auto program_expected = shader::Program::Builder()
+      auto fragment_shader = shader::Source(fragment_shader_sources[i], shader::Type::kFragment).Compile();
+
+      programs[i] = shader::Program::Builder()
                               .AttachShader(vertex_shader)
-                              .AttachShader(f_shader_expected.value())
+                              .AttachShader(fragment_shader)
                               .Link();
-      if (!program_expected.has_value()) {
-        std::cout << program_expected.error().Message() << std::endl;
-        return -1;
-      }
-      programs[i] = program_expected.value();
     }
   }
 
